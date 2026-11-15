@@ -17,5 +17,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - run: node --check lib/index.js
-      - run: node test/plugin.test.mjs
+      - name: Syntax check
+        run: |
+          node --check lib/index.js
+          node --check resources/bin/check-standards.mjs
+      - name: Structure and scanner tests
+        run: |
+          node test/plugin.test.mjs
+          node test/standards.test.mjs
+      - name: Self-scan (exclude intentional fixtures)
+        run: node resources/bin/check-standards.mjs --path . --exclude fixtures --fail-on p1

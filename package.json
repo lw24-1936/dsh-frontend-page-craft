@@ -1,11 +1,15 @@
 {
   "name": "dsh-frontend-page-craft",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
-  "description": "DeepSeek Harness 技能插件：前端页面「需求分析 → 设计 → 实现 → 验收」全流程，内置移动端/PC/可视化/动画/编辑器/3D 组件库选型目录与反 AI 味质量门禁。",
+  "description": "DeepSeek Harness 技能插件：前端页面「需求分析 → 设计 → 实现 → 验收」全流程，内置 32 条前端规范红线检查器（安全/可访问性/Vue 模板/TS/HTML/CSS/性能）与 68 个组件库选型目录。",
   "main": "lib/index.js",
+  "bin": {
+    "dsh-frontend-standards": "./resources/bin/check-standards.mjs"
+  },
   "exports": {
     ".": "./lib/index.js",
+    "./standards": "./resources/bin/check-standards.mjs",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg",
     "./package.json": "./package.json"
@@ -28,9 +32,10 @@
     }
   },
   "scripts": {
-    "check": "node --check lib/index.js && node --check test/plugin.test.mjs",
-    "test": "node test/plugin.test.mjs",
-    "verify": "npm run check && npm test"
+    "check": "node --check lib/index.js && node --check resources/bin/check-standards.mjs",
+    "test": "node test/plugin.test.mjs && node test/standards.test.mjs",
+    "standards": "node resources/bin/check-standards.mjs --path . --exclude fixtures",
+    "verify": "npm run check && npm test && npm run standards"
   },
   "keywords": [
     "dsh",
@@ -42,6 +47,10 @@
     "design-system",
     "component-library",
     "page-design",
+    "lint",
+    "accessibility",
+    "wcag",
+    "code-standards",
     "data-visualization"
   ],
   "engines": {

@@ -201,7 +201,23 @@ VERIFY.md     验收记录：逐项勾选 + 证据（阶段 D）
 - 不在前端硬编码密钥；接口错误信息不回显堆栈。
 - 用户输入进入 URL/查询参数前编码；文件名/路径做白名单。
 
-### 4.5 反 AI 味（硬清单，逐条自检）
+### 4.5 规范自检（写完代码先跑，别等验收）
+
+零依赖检查器覆盖 32 条红线（安全 / 可访问性 / Vue 模板 / TS / HTML / CSS / 性能），
+每条都标了出处（ESLint、Airbnb、Google、Vue 风格指南、WCAG 2.2、OWASP、web.dev）：
+
+```bash
+node <资源目录>/bin/check-standards.mjs --path . --fail-on p1
+```
+
+- P0 是安全/可访问性阻断（XSS、`target=_blank` 无 rel、`img` 无 alt、去 outline、`v-for` 无 key 等）→ 必须修。
+- P1 是规范债 → 本次交付内修掉；确实无法修时在 VERIFY.md 写明原因与计划。
+- P2 是卫生项 → 记录待办，不阻塞。
+- 规则细节、依据链接与已知限制见 `standards.md`；需要忽略某条时用 `--ignore 规则id`。
+
+它不替代 ESLint：ESLint 管语法与类型，这个检查器管**模板组合、跨文件 id、密钥、内联资源**这些 ESLint 默认看不到的红线。
+
+### 4.6 反 AI 味（硬清单，逐条自检）
 
 1. 默认紫蓝渐变 + 三张等宽卡片 + 圆角发光按钮 → 重写，按方向配方。
 2. emoji 当图标 → 用图标库或纯 CSS 几何图形。
@@ -225,6 +241,7 @@ VERIFY.md     验收记录：逐项勾选 + 证据（阶段 D）
 
 ## 5. 阶段 D：验收
 
+0. **先跑规范检查**：`node <资源目录>/bin/check-standards.mjs --path . --fail-on p1`；有 P0/P1 先修，不进入人工验收。
 1. 按 `qa-checklist.md` 逐项勾选（P0 必须全过；P1 记录为待办）。
 2. 能截图/开浏览器时：三档视口各截一张，检查溢出、遮挡、断行、焦点与四态；对比度用取色器抽检 3 处。
 3. 不能开浏览器时：明确写「视觉未验证」，只报静态检查结论，不冒充已验证。
@@ -246,6 +263,8 @@ VERIFY.md     验收记录：逐项勾选 + 证据（阶段 D）
 | 7 类页面的结构骨架与常见坑 | `page-archetypes.md` |
 | 代码骨架（Vue3/React）、请求层、表单/表格/图表封装 | `implementation-playbook.md` |
 | P0/P1 验收清单与阈值 | `qa-checklist.md` |
+| 32 条规范红线、依据与限制（ESLint/Airbnb/Google/Vue/WCAG/OWASP） | `standards.md` |
+| 可独立运行的零依赖规范检查器 | `bin/check-standards.mjs` |
 | 三个原始素材的来源与条目清单 | `source-notes.md` |
 | 可直接改造的样例 | `examples/hero-proof.html`、`examples/dashboard-skeleton.vue` |
 

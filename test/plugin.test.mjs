@@ -46,6 +46,7 @@ test('registers one bundled skill with resource base', () => {
   assert.equal(skill.resourceBase.kind, 'directory')
   assert.ok(skill.resourceBase.path.endsWith('resources'))
   assert.equal(skill.metadata.flow, 'brief > design > implement > verify')
+  assert.equal(skill.metadata.checks, 32)
 
   assert.equal(typeof dispose, 'function')
   dispose()
@@ -136,7 +137,25 @@ test('bundle manifest and patch agree', () => {
   assert.ok(pkg.files.includes('skills'))
   assert.ok(pkg.files.includes('lib'))
   assert.equal(pkg.exports['./icon'], './icon.svg')
+  assert.equal(pkg.bin['dsh-frontend-standards'], './resources/bin/check-standards.mjs')
+  assert.match(pkg.version, /^1\.1\./)
   assert.match(read('cordis.patch.yml'), /dsh-frontend-page-craft/)
+})
+
+test('standards doc cites the standards it implements', () => {
+  const doc = read('resources/standards.md')
+  for (const source of ['eslint.org', 'airbnb', 'google.github.io/styleguide', 'typescript-eslint.io', 'vuejs.org/style-guide', 'w3.org/TR/WCAG22', 'owasp.org', 'web.dev']) {
+    assert.ok(doc.toLowerCase().includes(source.toLowerCase()), `standards.md 缺少依据来源：${source}`)
+  }
+  assert.match(doc, /32 条/)
+})
+
+test('readme documents install, usage and limits', () => {
+  const readme = read('README.md')
+  for (const token of ['badge.svg', '快速开始', '规范检查器', '目录结构', '已知限制', 'LICENSE']) {
+    assert.ok(readme.includes(token), `README 缺少章节或元素：${token}`)
+  }
+  assert.match(readme, /check-standards\.mjs/)
 })
 
 test('locale metadata is complete', () => {
