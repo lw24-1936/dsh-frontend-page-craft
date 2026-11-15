@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>合同审阅助手 · 落地页样例</title>
+<style>
+  :root {
+    --bg: #faf9f6; --surface: #fff; --border: #e6e2da;
+    --text: #111110; --muted: #55534e; --faint: #8b8780;
+    --accent: #c2410c; --accent-contrast: #fff; --accent-weak: #fdf0e9;
+    --font-display: "Songti SC", "Source Han Serif SC", Georgia, serif;
+    --font-sans: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --max: 1120px;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.6 var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+  .wrap { max-width: var(--max); margin-inline: auto; padding-inline: 24px; }
+
+  /* 顶栏 */
+  .nav { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-block: 20px; border-bottom: 1px solid var(--border); }
+  .brand { font-family: var(--font-display); font-size: 20px; font-weight: 700; letter-spacing: .01em; text-decoration: none; }
+  .nav__links { display: none; gap: 28px; font-size: 14px; color: var(--muted); }
+  .nav__links a { text-decoration: none; }
+  .nav__links a:hover { color: var(--text); }
+  @media (min-width: 760px) { .nav__links { display: flex; } }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 0 20px; border-radius: 2px; border: 1px solid var(--text);
+    background: transparent; color: var(--text); font: inherit; font-size: 14px; font-weight: 600;
+    text-decoration: none; cursor: pointer; transition: background 120ms ease-out, color 120ms ease-out;
+  }
+  .btn--primary { background: var(--text); color: var(--bg); }
+  .btn--primary:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+  .btn--ghost:hover { background: var(--surface); }
+
+  /* 首屏：左文右证 */
+  .hero { display: grid; gap: 40px; padding-block: 56px 48px; }
+  @media (min-width: 900px) {
+    .hero { grid-template-columns: 1.1fr .9fr; gap: 56px; padding-block: 80px 64px; align-items: start; }
+  }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .eyebrow::before { content: ""; width: 24px; height: 1px; background: var(--accent); }
+  h1 {
+    font-family: var(--font-display); font-weight: 700;
+    font-size: clamp(32px, 5.4vw, 56px); line-height: 1.12; letter-spacing: -.01em;
+    margin: 16px 0 20px; text-wrap: balance;
+  }
+  .lede { font-size: clamp(16px, 2vw, 19px); line-height: 1.7; color: var(--muted); max-width: 34em; margin: 0 0 28px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .hint { font-size: 13px; color: var(--faint); }
+
+  /* 证据区：不用卡片，用编号条目 */
+  .proof { border-top: 1px solid var(--border); padding-top: 24px; }
+  .proof h2 { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 16px; }
+  .proof ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+  .proof li { display: grid; grid-template-columns: 44px 1fr; gap: 12px; padding-block: 16px; border-bottom: 1px solid var(--border); }
+  .proof li:last-child { border-bottom: 0; }
+  .proof .num { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 13px; color: var(--accent); padding-top: 2px; }
+  .proof .stat { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  .proof .stat small { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 4px; }
+  .proof p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+
+  /* 一条流程说明，替代三卡片 */
+  .flow { padding-block: 24px 56px; border-top: 1px solid var(--border); }
+  .flow h2 { font-family: var(--font-display); font-size: 24px; margin: 0 0 16px; font-weight: 700; }
+  .steps { display: grid; gap: 20px; margin: 0; padding: 0; list-style: none; counter-reset: step; }
+  @media (min-width: 760px) { .steps { grid-template-columns: repeat(3, 1fr); gap: 32px; } }
+  .steps li { counter-increment: step; font-size: 15px; color: var(--muted); }
+  .steps li::before { content: counter(step, decimal-leading-zero); display: block; font-family: ui-monospace, monospace; font-size: 12px; color: var(--accent); margin-bottom: 6px; }
+  .steps strong { display: block; color: var(--text); font-size: 16px; margin-bottom: 4px; }
+
+  footer { border-top: 1px solid var(--border); padding-block: 24px; font-size: 13px; color: var(--faint); display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="nav">
+      <a class="brand" href="#">合同审阅台</a>
+      <nav class="nav__links" aria-label="主导航">
+        <a href="#proof">审阅效果</a>
+        <a href="#flow">怎么用</a>
+        <a href="#pricing">价格</a>
+      </nav>
+      <a class="btn btn--primary" href="#cta">免费试审 3 份</a>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div>
+          <p class="eyebrow">合同风险初筛</p>
+          <h1 id="hero-title">把 80 页合同压成 1 页风险清单</h1>
+          <p class="lede">
+            上传 PDF 或 Word，20 分钟内给出偏离标准条款的位置、条款原文与替换建议；
+            法务只需要确认，不需要从头读。
+          </p>
+          <div class="actions">
+            <a class="btn btn--primary" href="#cta">免费试审 3 份</a>
+            <a class="btn btn--ghost" href="#proof">看审阅样例</a>
+          </div>
+          <p class="hint">无需安装 · 文件不出内网 · 支持扫描件 OCR</p>
+        </div>
+
+        <aside class="proof" id="proof" aria-labelledby="proof-title">
+          <h2 id="proof-title">真实审阅记录</h2>
+          <ol>
+            <li>
+              <span class="num" aria-hidden="true">01</span>
+              <div>
+                <p class="stat">14<small>处风险</small></p>
+                <p>某 SaaS 采购合同：付款账期、单方解约、数据归属三项偏离标准条款。</p>
+              </div>
+            </li>
+            <li>
+              <span class="num" aria-hidden="true">02</span>
+              <div>
+                <p class="stat">11<small>分钟</small></p>
+                <p>86 页主合同 + 3 份附件，含扫描件识别，人工复核 3 处后定稿。</p>
+              </div>
+            </li>
+            <li>
+              <span class="num" aria-hidden="true">03</span>
+              <div>
+                <p class="stat">0<small>次全文重读</small></p>
+                <p>清单直接给到条款坐标，点击跳转原文，复核只用读标注段落。</p>
+              </div>
+            </li>
+          </ol>
+        </aside>
+      </section>
+
+      <section class="flow" id="flow" aria-labelledby="flow-title">
+        <h2 id="flow-title">三步走完一次审阅</h2>
+        <ol class="steps">
+          <li><strong>上传</strong>拖入 PDF、Word 或扫描件，自动切分条款与附件。</li>
+          <li><strong>比对</strong>按你所在行业的条款库标记偏离，给出原文与建议。</li>
+          <li><strong>确认</strong>逐条通过或驳回，导出带批注的 Word 给对方法务。</li>
+        </ol>
+      </section>
+    </main>
+
+    <footer>
+      <span>© 2026 合同审阅台</span>
+      <span>ICP 备 00000000 号 · <a href="mailto:hi@example.com">hi@example.com</a></span>
+    </footer>
+  </div>
+</body>
+</html>

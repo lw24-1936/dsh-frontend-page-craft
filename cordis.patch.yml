@@ -1,0 +1,4 @@
+- insert:
+    - id: frontend-page-craft
+      name: dsh-frontend-page-craft
+      config: {}

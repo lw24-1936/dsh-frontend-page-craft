@@ -1,0 +1,60 @@
+{
+  "name": "dsh-frontend-page-craft",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "DeepSeek Harness 技能插件：前端页面「需求分析 → 设计 → 实现 → 验收」全流程，内置移动端/PC/可视化/动画/编辑器/3D 组件库选型目录与反 AI 味质量门禁。",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "skills",
+    "resources",
+    "locale",
+    "docs",
+    "icon.svg",
+    "cordis.patch.yml",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "scripts": {
+    "check": "node --check lib/index.js && node --check test/plugin.test.mjs",
+    "test": "node test/plugin.test.mjs",
+    "verify": "npm run check && npm test"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "cordis-plugin",
+    "skill",
+    "frontend",
+    "ui",
+    "design-system",
+    "component-library",
+    "page-design",
+    "data-visualization"
+  ],
+  "engines": {
+    "node": ">=20",
+    "dsh": ">=0.2.0-0 <0.3.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lw24-1936/dsh-frontend-page-craft.git"
+  },
+  "bugs": {
+    "url": "https://github.com/lw24-1936/dsh-frontend-page-craft/issues"
+  },
+  "homepage": "https://github.com/lw24-1936/dsh-frontend-page-craft#readme",
+  "license": "MIT"
+}
