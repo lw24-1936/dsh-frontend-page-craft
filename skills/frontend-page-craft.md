@@ -210,10 +210,12 @@ VERIFY.md     验收记录：逐项勾选 + 证据（阶段 D）
 node <资源目录>/bin/check-standards.mjs --path . --fail-on p1
 ```
 
+- 支持目录或单文件；`.vue/.svelte/.astro/.html/.ts/.tsx/.css` 等；
 - P0 是安全/可访问性阻断（XSS、`target=_blank` 无 rel、`img` 无 alt、去 outline、`v-for` 无 key 等）→ 必须修。
 - P1 是规范债 → 本次交付内修掉；确实无法修时在 VERIFY.md 写明原因与计划。
 - P2 是卫生项 → 记录待办，不阻塞。
-- 规则细节、依据链接与已知限制见 `standards.md`；需要忽略某条时用 `--ignore 规则id`。
+- `--list-rules` 查规则 id；`--ignore 规则id` 或项目根 `.standardsignore` 单条豁免。
+- 规则细节、依据链接与已知限制见 `standards.md`。
 
 它不替代 ESLint：ESLint 管语法与类型，这个检查器管**模板组合、跨文件 id、密钥、内联资源**这些 ESLint 默认看不到的红线。
 

@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.2.0
+
+**修复**
+
+- `--path` 参数此前完全失效：命令行把值写进 `path`，扫描器却读 `root`，所有带 `--path` 的调用实际都在扫当前目录。现在正确映射，并支持传单个文件。
+- CSS/SCSS/LESS 注释没有被剥离，`/* 不要用 outline: none */` 会误报 P0；现在注释在文件级检查前也会被移除。
+- 路径不存在时静默扫当前目录并返回 0；现在打印原因到 stderr 并返回 2。
+
+**新增**
+
+- 支持 `.svelte` 与 `.astro`：模板标签规则与样式规则生效（脚本逻辑仍不在范围）；`a11y/click-static` 同时识别 `on:click` / `onclick` / `v-on:click`。
+- `html/duplicate-id` 从仅 `.html` 扩展到所有 HTML 类文件（含 `.vue` 模板）。
+- `--list-rules`：列出 32 条规则 id、级别与类型。
+- `--ignore-file`：从文件读取豁免规则（每行一个，支持 `#` 与 `//` 注释、逗号分隔）；不传时自动读取目标目录的 `.standardsignore`。
+- `.htm` 与 `.html` 同样执行 doctype / lang / viewport 检查。
+
+**文档与测试**
+
+- 测试从 24 增至 29：新增 CSS 注释、svelte 扫描、Vue 重复 id、`listRules`/`loadIgnoreFile`、CLI 单文件/缺失路径/`--list-rules` 共 5 组用例，并新增 `bad.svelte` 与 `ignore.txt` 夹具。
+- README 与 `resources/standards.md` 同步命令、支持类型、退出码与限制；`npm run verify` 覆盖全部。
+
 ## 1.1.0
 
 - **新增规范检查器** `resources/bin/check-standards.mjs`（零依赖 CLI，32 条规则，P0/P1/P2 三级）：

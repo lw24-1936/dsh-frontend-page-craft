@@ -25,7 +25,7 @@ node <插件目录>/resources/bin/check-standards.mjs --path . --fail-on p1
 ```
 
 - P0 = 安全/可访问性阻断，必须修；P1 = 规范债，本次修；P2 = 卫生项，记录待办。
-- 支持 `--format json`、`--ignore 规则id`、`--include .ts,.vue`、`--exclude 目录`。
+- 支持目录或单文件，覆盖 `.vue/.svelte/.astro/.html/.ts/.tsx/.css` 等；`--format json`、`--ignore`、`--ignore-file`、`--list-rules`、`--include`、`--exclude` 均可用。
 - 依据：ESLint、Airbnb、Google JS/TS Style、Vue 官方风格指南、WCAG 2.2、OWASP、web.dev。
 
 ## 内置目录

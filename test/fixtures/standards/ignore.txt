@@ -1,0 +1,4 @@
+# 忽略文件样例：每行一个规则 id，支持 # 与 // 注释
+a11y/img-alt
+// 这条在 JS 里太吵
+js/no-console, js/no-var

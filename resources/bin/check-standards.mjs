@@ -16,8 +16,8 @@
  *                            [--exclude dir] [--max-findings 200] [--quiet]
  */
 
-import { readFileSync, readdirSync, statSync } from 'node:fs'
-import { extname, join, relative, resolve } from 'node:path'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { dirname, extname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 export const SEVERITY_RANK = { p0: 0, p1: 1, p2: 2 }
@@ -30,12 +30,12 @@ const SKIP_DIRS = new Set([
 
 const TEXT_EXTS = new Set([
   '.js', '.mjs', '.cjs', '.jsx', '.ts', '.tsx', '.mts', '.cts',
-  '.vue', '.html', '.htm', '.css', '.scss', '.less',
+  '.vue', '.svelte', '.astro', '.html', '.htm', '.css', '.scss', '.less',
 ])
 
 const JS_EXTS = new Set(['.js', '.mjs', '.cjs', '.jsx', '.ts', '.tsx', '.mts', '.cts', '.vue'])
-const HTML_EXTS = new Set(['.html', '.htm', '.vue'])
-const CSS_EXTS = new Set(['.css', '.scss', '.less', '.vue'])
+const HTML_EXTS = new Set(['.html', '.htm', '.vue', '.svelte', '.astro'])
+const CSS_EXTS = new Set(['.css', '.scss', '.less', '.vue', '.svelte', '.astro'])
 const TS_EXTS = new Set(['.ts', '.tsx', '.mts', '.cts', '.vue'])
 const JSX_EXTS = new Set(['.jsx', '.tsx'])
 
@@ -223,7 +223,7 @@ export const TAG_RULES = [
     exts: HTML_EXTS,
     test: (name, attrs) =>
       ['div', 'span', 'li', 'p', 'td', 'section'].includes(name) &&
-      /(@click|onClick)\s*=/.test(attrs) &&
+      /(@click|v-on:click|onClick|on:[a-z]+|onclick)\s*=/.test(attrs) &&
       !/\b(role|tabindex)\s*=/i.test(attrs),
     message: '静态元素绑定点击时补 role + tabindex + 键盘处理，或直接换成 button',
     source: 'WCAG 2.2 · 2.1.1 键盘',
@@ -262,7 +262,8 @@ export const TAG_RULES = [
 function stripLine(raw, ext, state) {
   const jsLike = JS_EXTS.has(ext)
   const htmlLike = HTML_EXTS.has(ext)
-  if (!jsLike && !htmlLike) return raw
+  const cssLike = CSS_EXTS.has(ext)
+  if (!jsLike && !htmlLike && !cssLike) return raw
 
   let out = ''
   let quote = null
@@ -299,7 +300,7 @@ function stripLine(raw, ext, state) {
       }
       continue
     }
-    if (jsLike && (ch === "'" || ch === '"' || ch === '`')) {
+    if ((jsLike || cssLike) && (ch === "'" || ch === '"' || ch === '`')) {
       quote = ch
       out += ch
       continue
@@ -319,7 +320,7 @@ function stripLine(raw, ext, state) {
       out += ' '.repeat(raw.length - i)
       break
     }
-    if (jsLike && raw.startsWith('/*', i)) {
+    if ((jsLike || cssLike) && raw.startsWith('/*', i)) {
       const end = raw.indexOf('*/', i + 2)
       if (end === -1) {
         state.blockJs = true
@@ -404,6 +405,7 @@ function walk(root, { ignoreDirs, out }) {
 export function scanText(text, { file = '<inline>', ext = '.js', ignore = new Set(), maxFindings = Infinity } = {}) {
   const findings = []
   const lines = text.split(/\r?\n/)
+  const strippedLines = new Array(lines.length)
   const state = { blockJs: false, blockHtml: false }
   const push = (line, column, rule, snippetLine) => {
     if (ignore.has(rule.id)) return
@@ -423,8 +425,12 @@ export function scanText(text, { file = '<inline>', ext = '.js', ignore = new Se
 
   for (let i = 0; i < lines.length; i += 1) {
     const raw = lines[i]
-    if (!raw.trim()) continue
+    if (!raw.trim()) {
+      strippedLines[i] = ''
+      continue
+    }
     const stripped = stripLine(raw, ext, state)
+    strippedLines[i] = stripped
     const masked = stripped ? maskStrings(stripped) : stripped
 
     for (const rule of LINE_RULES) {
@@ -454,13 +460,11 @@ export function scanText(text, { file = '<inline>', ext = '.js', ignore = new Se
     }
   }
 
-  const joined = lines.join('\n')
+  const joined = strippedLines.join('\n')
   const filePush = (rule, line = 1, column = 1) => push(line, column, rule)
 
-  if (ext === '.html') {
-    const firstMeaningful = lines.find(
-      (l) => l.replace(/^\uFEFF/, '').trim() && !l.trim().startsWith('<!--'),
-    )
+  if (ext === '.html' || ext === '.htm') {
+    const firstMeaningful = strippedLines.find((l) => l.replace(/^\uFEFF/, '').trim())
     if (!firstMeaningful || !/^<!doctype\s+html/i.test(firstMeaningful.replace(/^\uFEFF/, '').trim())) {
       filePush({
         id: 'html/doctype',
@@ -504,6 +508,9 @@ export function scanText(text, { file = '<inline>', ext = '.js', ignore = new Se
         })
       }
     }
+  }
+
+  if (HTML_EXTS.has(ext)) {
     const ids = new Map()
     const idRe = /\bid\s*=\s*["']([^"']+)["']/g
     let m
@@ -645,6 +652,40 @@ export function formatText(result, { failOn = 'p0', quiet = false } = {}) {
   return { text: lines.join('\n'), exitCode, counts }
 }
 
+/**
+ * 文件级规则清单（用于 --list-rules 与文档核对；实际判定在 scanText 内）。
+ */
+export const FILE_RULES = [
+  { id: 'html/doctype', severity: 'p1' },
+  { id: 'a11y/html-lang', severity: 'p1' },
+  { id: 'html/viewport', severity: 'p1' },
+  { id: 'a11y/zoom-disabled', severity: 'p0' },
+  { id: 'html/duplicate-id', severity: 'p1' },
+  { id: 'a11y/outline-none', severity: 'p0' },
+  { id: 'css/important', severity: 'p2' },
+  { id: 'perf/data-uri', severity: 'p1' },
+]
+
+/** 全部规则（行级 + 标签级 + 文件级），供 --list-rules 使用。 */
+export function listRules() {
+  return [
+    ...LINE_RULES.map((r) => ({ id: r.id, severity: r.severity, type: 'line' })),
+    ...TAG_RULES.map((r) => ({ id: r.id, severity: r.severity, type: 'tag' })),
+    ...FILE_RULES.map((r) => ({ id: r.id, severity: r.severity, type: 'file' })),
+  ]
+}
+
+/** 读取忽略文件：每行一个规则 id，# 与 // 开头为注释。 */
+export function loadIgnoreFile(path) {
+  const text = readFileSync(path, 'utf8')
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith('#') && !line.startsWith('//'))
+    .flatMap((line) => line.split(',').map((s) => s.trim()))
+    .filter(Boolean)
+}
+
 function parseArgs(argv) {
   const options = {
     path: '.',
@@ -655,19 +696,23 @@ function parseArgs(argv) {
     exclude: [],
     maxFindings: 500,
     quiet: false,
+    ignoreFile: null,
+    listRules: false,
   }
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i]
     const next = () => argv[++i]
     switch (arg) {
-      case '--path': options.path = next(); break
-      case '--format': options.format = next(); break
-      case '--fail-on': options.failOn = next(); break
-      case '--ignore': options.ignore = next().split(',').map((s) => s.trim()).filter(Boolean); break
-      case '--include': options.include = next().split(',').map((s) => s.trim()).filter(Boolean); break
-      case '--exclude': options.exclude = next().split(',').map((s) => s.trim()).filter(Boolean); break
+      case '--path': options.path = next() ?? '.'; break
+      case '--format': options.format = next() ?? 'text'; break
+      case '--fail-on': options.failOn = next() ?? 'p0'; break
+      case '--ignore': options.ignore = (next() ?? '').split(',').map((s) => s.trim()).filter(Boolean); break
+      case '--ignore-file': options.ignoreFile = next() ?? null; break
+      case '--include': options.include = (next() ?? '').split(',').map((s) => s.trim()).filter(Boolean); break
+      case '--exclude': options.exclude = (next() ?? '').split(',').map((s) => s.trim()).filter(Boolean); break
       case '--max-findings': options.maxFindings = Number(next()) || 500; break
       case '--quiet': options.quiet = true; break
+      case '--list-rules': options.listRules = true; break
       case '--help':
       case '-h':
         options.help = true
@@ -680,24 +725,74 @@ function parseArgs(argv) {
   return options
 }
 
+const USAGE = [
+  '前端规范检查器（dsh-frontend-page-craft）',
+  '',
+  '用法: node check-standards.mjs [--path .] [--format text|json] [--fail-on p0|p1|p2|none]',
+  '                               [--ignore ruleId,...] [--ignore-file .standardsignore]',
+  '                               [--include .ts,.vue] [--exclude dir,...]',
+  '                               [--max-findings 500] [--quiet] [--list-rules]',
+  '',
+  '--path 可以是目录或单个文件；默认读取目录下的 .standardsignore（规则 id，每行一个）。',
+  'P0 = 必须修（安全/可访问性阻断），P1 = 应当修，P2 = 卫生项。',
+].join('\n') + '\n'
+
+function fail(message) {
+  process.stderr.write(`${message}\n`)
+  return 2
+}
+
 export function main(argv = process.argv.slice(2)) {
   const options = parseArgs(argv)
   if (options.help) {
-    process.stdout.write(
-      [
-        '前端规范检查器（dsh-frontend-page-craft）',
-        '',
-        '用法: node check-standards.mjs [--path .] [--format text|json] [--fail-on p0|p1|p2|none]',
-        '                               [--ignore ruleId,...] [--include .ts,.vue]',
-        '                               [--exclude dir,...] [--max-findings 500] [--quiet]',
-        '',
-        'P0 = 必须修（安全/可访问性阻断），P1 = 应当修，P2 = 卫生项。',
-      ].join('\n') + '\n',
-    )
+    process.stdout.write(USAGE)
+    return 0
+  }
+  if (options.listRules) {
+    const rows = listRules().sort((a, b) => a.id.localeCompare(b.id))
+    process.stdout.write(`${rows.map((r) => `${r.severity.toUpperCase()}  ${r.id}  (${r.type})`).join('\n')}\n`)
     return 0
   }
 
-  const result = scanProject(options)
+  const rootAbs = resolve(options.path)
+  if (!existsSync(rootAbs)) return fail(`路径不存在：${rootAbs}`)
+
+  const ignore = [...options.ignore]
+  const ignoreFile =
+    options.ignoreFile ??
+    (existsSync(join(statSync(rootAbs).isDirectory() ? rootAbs : dirname(rootAbs), '.standardsignore'))
+      ? join(statSync(rootAbs).isDirectory() ? rootAbs : dirname(rootAbs), '.standardsignore')
+      : null)
+  if (ignoreFile) {
+    try {
+      ignore.push(...loadIgnoreFile(ignoreFile))
+    } catch (err) {
+      return fail(`无法读取忽略文件 ${ignoreFile}：${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
+
+  const stats = statSync(rootAbs)
+  let result
+  if (stats.isFile()) {
+    const scan = scanFile(rootAbs, { ignore: new Set(ignore), maxFindings: options.maxFindings })
+    result = {
+      root: rootAbs,
+      scanned: 1,
+      findings: scan.findings.map((f) => ({ ...f, file: relative(process.cwd(), f.file) || f.file })),
+      skipped: scan.skipped ? [scan.skipped] : [],
+    }
+  } else if (stats.isDirectory()) {
+    result = scanProject({
+      root: rootAbs,
+      ignore,
+      include: options.include,
+      exclude: options.exclude,
+      maxFindings: options.maxFindings,
+    })
+  } else {
+    return fail(`不支持的路径类型：${rootAbs}`)
+  }
+
   if (options.format === 'json') {
     const { counts, exitCode } = summarize(result, { failOn: options.failOn })
     process.stdout.write(`${JSON.stringify({ ...result, counts, exitCode }, null, 2)}\n`)

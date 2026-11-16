@@ -92,6 +92,9 @@ node resources/bin/check-standards.mjs --path . --exclude fixtures
 # 默认：扫描当前目录，P0 才让退出码变 1
 node resources/bin/check-standards.mjs
 
+# 单个文件也可以（写 pre-commit 时好用）
+node resources/bin/check-standards.mjs --path src/App.vue
+
 # 发布前更严格
 node resources/bin/check-standards.mjs --path src --fail-on p1
 
@@ -100,7 +103,17 @@ node resources/bin/check-standards.mjs --format json > standards.json
 
 # 忽略个别规则 / 只查某类文件 / 排除目录
 node resources/bin/check-standards.mjs --ignore js/no-console,js/no-alert --include .ts,.vue --exclude fixtures,legacy
+
+# 批量豁免：每行一个规则 id，# 与 // 开头为注释
+node resources/bin/check-standards.mjs --ignore-file .standardsignore
+# 不传 --ignore-file 时，自动读取目标目录（或单文件所在目录）下的 .standardsignore
+
+# 打印全部规则 id（配 --ignore 用）
+node resources/bin/check-standards.mjs --list-rules
 ```
+
+扫描类型：`.js .mjs .cjs .jsx .ts .tsx .mts .cts .vue .svelte .astro .html .htm .css .scss .less`。
+`.svelte/.astro` 只走模板标签与样式规则，脚本逻辑不在覆盖范围（在「已知限制」中说明）。
 
 文本输出：
 
@@ -113,7 +126,7 @@ src/App.vue:12:5  P0  vue/v-for-key
 
 JSON 输出包含 `scanned`、`findings[]`（`file/line/column/rule/severity/message/source/snippet`）、`counts`、`exitCode`、`skipped[]`。
 
-退出码：`0` 通过；`1` 有达到 `--fail-on` 阈值的问题；`2` 参数/路径错误由 Node 自身抛出。
+退出码：`0` 通过；`1` 有达到 `--fail-on` 阈值的问题；`2` 路径不存在或参数错误（会打印原因到 stderr）。
 
 ## CI 集成
 
@@ -139,14 +152,18 @@ JSON 输出包含 `scanned`、`findings[]`（`file/line/column/rule/severity/mes
 
 - **行级扫描，不做 AST 解析**：跨行 JSX/模板属性、复杂表达式可能漏报；字符串内出现的标签文本可能误报。
 - **`.vue` 的行内 `<script>` 与模板共用规则集**：脚本里的字符串若含 `<img>` 等标签文本，可能被模板规则误伤。
+- **`.svelte` / `.astro`**：只覆盖模板标签与样式规则，`<script>` 里的 JS 规则不生效。
 - **HTML 内联 `<script>` 不按 JS 规则检查**（只按 HTML 规则）；内联脚本请拆到独立文件。
-- **注释启发式**：单行与块注释会被跳过，但字符串里未闭合的引号可能影响判断；模板字符串跨行不跟踪。
+- **注释启发式**：单行、块注释与 CSS 注释都会被跳过；字符串里未闭合的引号可能影响判断，跨行模板字符串不跟踪。
 - **不检查运行时**：对比度、焦点顺序、LCP/INP 必须用浏览器或 Lighthouse 实测。
 - **密钥规则是正则启发式**：可能漏报变体，也可能把测试夹具当密钥；命中后请人工确认。
 
 ## 扩展一条规则
 
-1. 在 `resources/bin/check-standards.mjs` 的 `LINE_RULES`（行级）或 `TAG_RULES`（标签级）追加一条，写明 `id`（`域/规则名`）、`severity`、`exts`、`pattern`/`test`、`message`、`source`。
-2. 需要看字符串内容时加 `inspectLiterals: true`；匹配注释指令（如 `@ts-ignore`）时加 `onRaw: true`。
+1. 在 `resources/bin/check-standards.mjs` 追加一条：
+   - `LINE_RULES`：行级正则；需要读取字符串内容时加 `inspectLiterals: true`，匹配注释指令（如 `@ts-ignore`）时加 `onRaw: true`。
+   - `TAG_RULES`：HTML/Vue 标签属性组合，函数签名 `(name, attrs) => boolean`。
+   - 文件级规则：在 `scanText` 里用 `filePush` 判定，并把 `{ id, severity }` 加进 `FILE_RULES`（`--list-rules` 与测试都依赖它）。
+2. 写明 `id`（`域/规则名`）、`severity`、`exts`、`pattern`/`test`、`message`（说明 + 怎么改）、`source`（规范出处）。
 3. 在 `test/fixtures/standards/` 加一个必然命中的样例，在 `test/standards.test.mjs` 加期望。
-4. 同步更新本文规则总表与 README 的规则数量。
+4. 同步更新本文规则总表与计数；`listRules()` 总数必须与文档一致（测试会校验 32 条）。

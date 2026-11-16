@@ -1,6 +1,6 @@
 {
   "name": "dsh-frontend-page-craft",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "type": "module",
   "description": "DeepSeek Harness 技能插件：前端页面「需求分析 → 设计 → 实现 → 验收」全流程，内置 32 条前端规范红线检查器（安全/可访问性/Vue 模板/TS/HTML/CSS/性能）与 68 个组件库选型目录。",
   "main": "lib/index.js",

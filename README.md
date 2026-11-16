@@ -94,8 +94,9 @@ node <插件目录>/resources/bin/check-standards.mjs --path . --fail-on p1
 | P2 | 卫生项 | 仅报告 |
 
 ```bash
-# 基本用法
+# 基本用法（目录或单个文件）
 node resources/bin/check-standards.mjs
+node resources/bin/check-standards.mjs --path src/App.vue
 
 # 发布前严格模式
 node resources/bin/check-standards.mjs --path src --fail-on p1
@@ -105,7 +106,15 @@ node resources/bin/check-standards.mjs --format json > standards.json
 
 # 忽略规则 / 限定类型 / 排除目录
 node resources/bin/check-standards.mjs --ignore js/no-console --include .ts,.vue --exclude legacy
+
+# 用忽略文件批量豁免（不传时自动读取目标目录下的 .standardsignore）
+node resources/bin/check-standards.mjs --ignore-file .standardsignore
+
+# 列出全部规则 id（配 --ignore 用）
+node resources/bin/check-standards.mjs --list-rules
 ```
+
+扫描 `.js/.mjs/.cjs/.jsx/.ts/.tsx/.mts/.cts/.vue/.svelte/.astro/.html/.htm/.css/.scss/.less`；`.svelte/.astro` 目前只走模板标签与样式规则（脚本规则未解析）。
 
 覆盖范围：
 
@@ -170,7 +179,7 @@ test/                            结构测试 + 检查器测试 + 夹具
 
 ```bash
 npm run check      # 语法检查
-npm test           # 结构测试 + 检查器测试（22 个用例）
+npm test           # 结构测试 + 检查器测试（29 个用例）
 npm run standards  # 自扫描本仓库（排除测试夹具）
 npm run verify     # 全部
 ```
@@ -180,6 +189,7 @@ CI 在 Node 20 / 22 / 24 上跑同样的检查。
 ## 已知限制
 
 - 检查器是**行级**扫描，不做 AST：跨行属性、跨行模板字符串可能漏报；`.vue` 脚本里的字符串若含标签文本可能误报。
+- `.svelte` / `.astro` 只检查模板标签与样式，不检查其中的脚本逻辑。
 - HTML 内联 `<script>` 不按 JS 规则检查，请拆到独立文件。
 - 不测量运行时：对比度、焦点顺序、LCP/INP 需浏览器或 Lighthouse 实测。
 - 密钥规则是启发式，命中后需人工确认。

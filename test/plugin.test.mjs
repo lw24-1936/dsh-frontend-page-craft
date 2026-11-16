@@ -138,7 +138,7 @@ test('bundle manifest and patch agree', () => {
   assert.ok(pkg.files.includes('lib'))
   assert.equal(pkg.exports['./icon'], './icon.svg')
   assert.equal(pkg.bin['dsh-frontend-standards'], './resources/bin/check-standards.mjs')
-  assert.match(pkg.version, /^1\.1\./)
+  assert.match(pkg.version, /^1\.2\./)
   assert.match(read('cordis.patch.yml'), /dsh-frontend-page-craft/)
 })
 

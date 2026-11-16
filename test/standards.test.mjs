@@ -6,10 +6,14 @@ import { fileURLToPath } from 'node:url'
 import {
   LINE_RULES,
   TAG_RULES,
+  FILE_RULES,
   scanText,
   scanProject,
   summarize,
   formatText,
+  listRules,
+  loadIgnoreFile,
+  main,
 } from '../resources/bin/check-standards.mjs'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
@@ -128,4 +132,78 @@ test('text and json renderers agree on counts', () => {
   assert.match(text, /共 \d+ 个问题：P0 \d+ · P1 \d+ · P2 \d+/)
   assert.equal(counts.p0 + counts.p1 + counts.p2, result.findings.length)
   assert.equal(exitCode, 1)
+})
+
+test('css comments do not trigger file-level rules', () => {
+  const commented = scanText('/* 这里解释为什么不用 outline: none */\n.a { color: red; }', {
+    file: 'x.css',
+    ext: '.css',
+  })
+  assert.deepEqual(commented.findings, [])
+
+  const real = scanText('.a { outline: none; }', { file: 'y.css', ext: '.css' })
+  assert.ok(real.findings.some((f) => f.rule === 'a11y/outline-none'))
+})
+
+test('svelte templates are scanned with tag rules', () => {
+  const result = scanProject({ root: FIXTURES })
+  const rules = rulesOf(result.findings, 'bad.svelte')
+  for (const expected of ['a11y/img-alt', 'a11y/button-type', 'html/duplicate-id']) {
+    assert.ok(rules.has(expected), `未检出 ${expected}，实际：${[...rules].join(', ')}`)
+  }
+})
+
+test('duplicate ids are detected in Vue templates too', () => {
+  const { findings } = scanText('<div id="a"></div>\n<div id="a"></div>', {
+    file: 'x.vue',
+    ext: '.vue',
+  })
+  assert.ok(findings.some((f) => f.rule === 'html/duplicate-id'))
+})
+
+test('rule listing and ignore files stay in sync with the catalog', () => {
+  const rules = listRules()
+  assert.equal(rules.length, 32)
+  assert.equal(new Set(rules.map((r) => r.id)).size, 32)
+  assert.equal(rules.length, LINE_RULES.length + TAG_RULES.length + FILE_RULES.length)
+
+  const ignore = loadIgnoreFile(join(FIXTURES, 'ignore.txt'))
+  assert.deepEqual(ignore, ['a11y/img-alt', 'js/no-console', 'js/no-var'])
+})
+
+test('CLI handles single files, missing paths and --list-rules', () => {
+  const capture = (argv) => {
+    let out = ''
+    let err = ''
+    const stdout = process.stdout.write
+    const stderr = process.stderr.write
+    process.stdout.write = (chunk) => {
+      out += chunk
+      return true
+    }
+    process.stderr.write = (chunk) => {
+      err += chunk
+      return true
+    }
+    try {
+      const code = main(argv)
+      return { code, out, err }
+    } finally {
+      process.stdout.write = stdout
+      process.stderr.write = stderr
+    }
+  }
+
+  const single = capture(['--path', join(FIXTURES, 'bad.ts'), '--fail-on', 'none'])
+  assert.equal(single.code, 0)
+  assert.match(single.out, /ts\/no-explicit-any/)
+  assert.match(single.out, /扫描 1 个文件/)
+
+  const missing = capture(['--path', join(FIXTURES, 'nope')])
+  assert.equal(missing.code, 2)
+  assert.match(missing.err, /路径不存在/)
+
+  const listed = capture(['--list-rules'])
+  assert.equal(listed.code, 0)
+  assert.equal(listed.out.trim().split('\n').length, 32)
 })
